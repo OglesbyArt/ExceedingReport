@@ -1,5 +1,3 @@
-ExceedingReport
-===============
 package artpricingsystem;
 import java.io.*;
 import java.util.*;
@@ -75,11 +73,46 @@ public class ExceedingReport {
         int thisDay=calendar.get(Calendar.DAY_OF_MONTH);
         String ytd=thisMonth+"/"+thisDay+"/"+lastYear;
         Date lowerbound = new Date (ytd);
-        if(b.dateOfSale.after(lowerbound) && b.actualSellingPrice>b.targetSellingPrice)
+        if(b.getDateOfSale().after(lowerbound) && b.actualSellingPrice>b.targetSellingPrice )
         {   
-            System.out.printf("%-25s%-25s%-35s%-25s%-45s%-35s%-30s\n", b.artistLastName, b.artistFirstName, b.dateOfSale, b.classification, b.titleOfWork, b.targetSellingPrice, b.actualSellingPrice);
-            ++lineCount;
-            return true;
+            boolean check=secondPaintingCheck(b, lowerbound);
+            if(check)
+            {
+                System.out.printf("%-25s%-25s%-35s%-25s%-45s%-35s%-30s\n", b.artistLastName, b.artistFirstName, b.dateOfSale, b.classification, b.titleOfWork, b.targetSellingPrice, b.actualSellingPrice);
+                ++lineCount;
+                return true;
+            }
+            return false;
+        }
+        return false;
+    }
+    public static boolean secondPaintingCheck(SoldPainting b, Date ly)
+    {
+        try
+        {
+            File paintingsFile = new File ("GalleryPaintings.dat");
+            int found = 0;
+            SoldPainting temp=new SoldPainting();
+            if (paintingsFile.exists())
+            {
+                RandomAccessFile inFile = new RandomAccessFile (paintingsFile, "r");
+                while (found<2 && (inFile.getFilePointer()!=inFile.length()))
+                {
+                    temp.read(inFile);
+                    if (b.artistLastName.equalsIgnoreCase(temp.artistLastName) && 
+                    b.artistFirstName.equalsIgnoreCase(temp.artistFirstName) && temp.dateOfSale.after(ly))
+                       ++found;         
+                }
+                inFile.close();
+            }
+            if(found>=2) return true;
+            else if (found<2) return false;
+        }
+        catch (Exception e)
+        {
+            System.out.println ("***** Error: ExceedingReport.secondPaintingCheck () *****");
+            System.out.println ("\t" + e);
+            return false; 
         }
         return false;
     }
@@ -99,7 +132,7 @@ public class ExceedingReport {
         actualavg=actualavg/100;
         System.out.print("\n\nThe average Actual Selling Price is: $" + actualavg+ "\t\t");
         double targetavg=target/count;
-        targetavg=Math.round(target*100);
+        targetavg=Math.round(targetavg*100);
         targetavg=targetavg/100;
         System.out.print("The average Target Selling Price is: $"+targetavg + "\t\t");
         double ratio=actualavg/targetavg;
