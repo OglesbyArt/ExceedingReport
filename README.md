@@ -3,7 +3,7 @@ import java.io.*;
 import java.util.*;
 import java.util.Comparator;
         
-public class SoldReport {      
+public class ExceedingReport {      
     public static int lineCount;
     public static void printReport ()
     {
@@ -15,7 +15,6 @@ public class SoldReport {
             //sortFile();
             SoldPainting tempPainting = new SoldPainting();
             File  paintingFile = new File ("GalleryPaintings.dat");
-            
             if (paintingFile.exists())
             {
                 RandomAccessFile inFile = new RandomAccessFile (paintingFile, "r");
@@ -74,14 +73,46 @@ public class SoldReport {
         int thisDay=calendar.get(Calendar.DAY_OF_MONTH);
         String ytd=thisMonth+"/"+thisDay+"/"+lastYear;
         Date lowerbound = new Date (ytd);
-        if(b.dateOfSale.after(lowerbound))
-        {    
-            System.out.printf ("%-25s%-35s%-25s%-45s%-35s%-30s", b.classification, b.dateOfSale, b.artistLastName, b.titleOfWork, b.targetSellingPrice, b.actualSellingPrice);
-            if(b.actualSellingPrice>b.targetSellingPrice)
-                System.out.printf ("%-35s\n", true);  
-            else System.out.printf ("%-35s\n",false);  
-            ++lineCount;
-            return true;
+        if(b.getDateOfSale().after(lowerbound) && b.actualSellingPrice>b.targetSellingPrice )
+        {   
+            boolean check=secondPaintingCheck(b, lowerbound);
+            if(check)
+            {
+                System.out.printf("%-25s%-25s%-35s%-25s%-45s%-35s%-30s\n", b.artistLastName, b.artistFirstName, b.dateOfSale, b.classification, b.titleOfWork, b.targetSellingPrice, b.actualSellingPrice);
+                ++lineCount;
+                return true;
+            }
+            return false;
+        }
+        return false;
+    }
+    public static boolean secondPaintingCheck(SoldPainting b, Date ly)
+    {
+        try
+        {
+            File paintingsFile = new File ("GalleryPaintings.dat");
+            int found = 0;
+            SoldPainting temp=new SoldPainting();
+            if (paintingsFile.exists())
+            {
+                RandomAccessFile inFile = new RandomAccessFile (paintingsFile, "r");
+                while (found<2 && (inFile.getFilePointer()!=inFile.length()))
+                {
+                    temp.read(inFile);
+                    if (b.artistLastName.equalsIgnoreCase(temp.artistLastName) && 
+                    b.artistFirstName.equalsIgnoreCase(temp.artistFirstName) && temp.dateOfSale.after(ly))
+                       ++found;         
+                }
+                inFile.close();
+            }
+            if(found>=2) return true;
+            else if (found<2) return false;
+        }
+        catch (Exception e)
+        {
+            System.out.println ("***** Error: ExceedingReport.secondPaintingCheck () *****");
+            System.out.println ("\t" + e);
+            return false; 
         }
         return false;
     }
@@ -89,8 +120,8 @@ public class SoldReport {
     public static void printHeader()
     {
         System.out.println ("\t\t\t\t\t       Produce Paintings Sold in the Past Year Report       \n");
-        System.out.printf ("%-25s%-35s%-25s%-45s%-35s%-30s%-35s\n", "Classification Type", "Sale Date", "Artist Last Name", "Title of Work", "Target Selling Price", "Actual Selling Price", "Actual Price > Target Price Flag");
-        System.out.println ("----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+        System.out.printf ("%-25s%-25s%-35s%-25s%-45s%-35s%-30s\n", "Artist Last Name", "Artist First Name", "Date Of Sale", "Classification Type", "Title of Work", "Target Selling Price", "Actual Selling Price");
+        System.out.println ("--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
         lineCount+=4;
     }
     
