@@ -5,14 +5,16 @@ import java.util.Comparator;
         
 public class ExceedingReport {      
     public static int lineCount;
+    public static SoldPainting lastRecord;
     public static void printReport ()
     {
         double totalActualSellingPrice=0;
         double totalTargetSellingPrice=0;
         int count=0;
+        lastRecord=new SoldPainting();
         try
         {
-            //sortFile();
+            sortFile();
             SoldPainting tempPainting = new SoldPainting();
             File  paintingFile = new File ("GalleryPaintings.dat");
             if (paintingFile.exists())
@@ -35,7 +37,7 @@ public class ExceedingReport {
                     {
                         boolean printed=printRecord(tempPainting);
                         if(printed)
-                        {
+                        {   
                             totalActualSellingPrice+=tempPainting.getActualSellingPrice();
                             totalTargetSellingPrice+=tempPainting.getTargetSellingPrice();
                             count++;
@@ -66,24 +68,40 @@ public class ExceedingReport {
 
     public static boolean printRecord (SoldPainting b)
     {
-        Date today=new Date();
+        
         Calendar calendar = Calendar.getInstance();
         int lastYear=calendar.get(Calendar.YEAR)-1;
         int thisMonth=calendar.get(Calendar.MONTH)+1;
         int thisDay=calendar.get(Calendar.DAY_OF_MONTH);
         String ytd=thisMonth+"/"+thisDay+"/"+lastYear;
         Date lowerbound = new Date (ytd);
-        if(b.getDateOfSale().after(lowerbound) && b.actualSellingPrice>b.targetSellingPrice )
+        if(b.getDateOfSale().after(lowerbound) && b.actualSellingPrice>b.targetSellingPrice)
         {   
             boolean check=secondPaintingCheck(b, lowerbound);
             if(check)
             {
-                System.out.printf("%-25s%-25s%-35s%-25s%-45s%-35s%-30s\n", b.artistLastName, b.artistFirstName, b.dateOfSale, b.classification, b.titleOfWork, b.targetSellingPrice, b.actualSellingPrice);
-                ++lineCount;
+                if(lastRecord.getArtistLastName().equalsIgnoreCase(b.artistLastName) && 
+                lastRecord.artistFirstName.equalsIgnoreCase(b.artistFirstName))
+                {    
+                    System.out.printf("\t\t%-35s%-25s%-45s%-35s%-30s\n", b.dateOfSale, b.classification, b.titleOfWork, b.targetSellingPrice, b.actualSellingPrice);
+                    ++lineCount;
+                }
+                else
+                {    
+                    System.out.printf("%s, %s\n", b.artistLastName, b.artistFirstName);
+                    lastRecord=b;
+                    System.out.printf("\t\t%-35s%-25s%-45s%-35s%-30s\n", b.dateOfSale, b.classification, b.titleOfWork, b.targetSellingPrice, b.actualSellingPrice);  
+                    lineCount+=2;
+                }
                 return true;
             }
             return false;
         }
+        return false;
+    }
+    
+    public static boolean sameArtist(SoldPainting oldpaint, SoldPainting newpaint)
+    {
         return false;
     }
     public static boolean secondPaintingCheck(SoldPainting b, Date ly)
@@ -120,7 +138,7 @@ public class ExceedingReport {
     public static void printHeader()
     {
         System.out.println ("\t\t\t\t\t       Produce Paintings Sold in the Past Year Report       \n");
-        System.out.printf ("%-25s%-25s%-35s%-25s%-45s%-35s%-30s\n", "Artist Last Name", "Artist First Name", "Date Of Sale", "Classification Type", "Title of Work", "Target Selling Price", "Actual Selling Price");
+        System.out.printf ("\t\t%-35s%-25s%-45s%-35s%-30s\n", "Date Of Sale", "Classification Type", "Title of Work", "Target Selling Price", "Actual Selling Price");
         System.out.println ("--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
         lineCount+=4;
     }
@@ -139,5 +157,52 @@ public class ExceedingReport {
         ratio=Math.round(ratio*100);
         ratio=ratio/100;
         System.out.println("The average ratio of the Actual Selling Price to the Target Selling Price is: " + ratio+"\n");
+    }
+          
+    public static void sortFile() 
+    {
+       try{
+           List<SoldPainting> bp= new ArrayList<SoldPainting>();
+           File paintingsFile = new File ("GalleryPaintings.dat");
+           File  tempPaintingsFile = new File ("Reports.dat");
+           tempPaintingsFile.delete();
+           RandomAccessFile oldFile = new RandomAccessFile (paintingsFile, "r");
+           //Reads in File to Array 
+           while (oldFile.getFilePointer () != oldFile.length ()) 
+           {
+                SoldPainting tempPainting = new SoldPainting ();
+                tempPainting.read(oldFile);
+                bp.add(tempPainting);
+           } 
+           oldFile.close ();
+           //Sorts the Array
+           Collections.sort(bp,new Comparator<SoldPainting>() {
+           @Override
+            public int compare(SoldPainting  bp1, SoldPainting  bp2)
+            {
+                int result=bp1.getArtistLastName().compareTo(bp2.getArtistLastName());
+                if(result!=0)
+                     return result;
+                else if (result==0)    
+                    result=bp1.getArtistsFirstName().compareTo(bp2.getArtistsFirstName());
+                else if( result==0)
+                    result=bp1.getDateOfSale().compareTo(bp2.getDateOfSale());
+                return result;
+            }
+            });
+           //Writes Array to File
+           RandomAccessFile newFile = new RandomAccessFile (tempPaintingsFile, "rw");
+            for(int j=0;j<bp.size();++j) 
+            {
+                SoldPainting tempPainting = new SoldPainting ();
+                tempPainting=bp.get(j);
+                tempPainting.write(newFile);
+            }
+       }
+       catch (Exception e)
+       {
+            System.out.println ("***** Error: ExceedingReport.sortFile () *****");
+            System.out.println ("\t" + e);
+       }
     }
 }
